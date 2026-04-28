@@ -1,0 +1,36 @@
+# Môi trường ảo
+venv/
+env/
+.env
+
+# Bộ nhớ đệm và dữ liệu sinh ra tự động
+chroma_db/
+tts_cache/
+Tai_lieu_PDF/
+web_view/pdf_pages/
+temp.wav
+temp_whisper.wav
+test.mp3
+copy_logo.py
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg

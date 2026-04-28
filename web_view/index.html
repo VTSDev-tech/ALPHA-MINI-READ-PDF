@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpha Mini - Trình Chiếu Tài Liệu</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Font cao cấp Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Icon xịn Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <aside class="sidebar">
+            <div class="brand-header">
+                <div class="logo-circle">
+                    <img src="robot_logo.png" alt="Alpha Mini Logo" class="robot-face-logo">
+                </div>
+                <div class="brand-text">
+                    <h1>Alpha Mini</h1>
+                    <span>Hệ Thống Trí Tuệ</span>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon pulse-blue">
+                    <i class="ph-fill ph-cell-signal-full"></i>
+                </div>
+                <div class="status-info">
+                    <span class="status-label">Kết Nối Ổn Định</span>
+                    <span class="status-time" id="clock">14:00</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 class="section-title" style="margin-bottom: 0;">
+                        <i class="ph-bold ph-file-pdf"></i> TÀI LIỆU ĐANG MỞ
+                    </h3>
+                    <button class="upload-btn" onclick="document.getElementById('pdf-upload').click()">
+                        <i class="ph-bold ph-upload-simple"></i> Tải Lên
+                    </button>
+                    <input type="file" id="pdf-upload" accept=".pdf" style="display: none;" onchange="handleFileUpload(event)">
+                </div>
+                <div id="upload-status" style="display: none; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: var(--primary-blue); background: var(--primary-glow); padding: 8px 12px; border-radius: 8px;"></div>
+                <div class="doc-card">
+                    <div class="doc-icon">
+                        <i class="ph-fill ph-file-text"></i>
+                    </div>
+                    <div class="doc-details">
+                        <div class="doc-name" id="doc-name">Chưa có tài liệu</div>
+                        <div class="doc-badge" id="doc-page">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section flex-grow">
+                <h3 class="section-title section-accent">
+                    <i class="ph-bold ph-sparkle"></i> TRÍCH XUẤT CHÚ Ý
+                </h3>
+                <div class="insight-container">
+                    <ul id="insight-list" class="insight-list">
+                        <li class="empty-state">
+                            <i class="ph-duotone ph-chat-teardrop-dots"></i>
+                            <p>Hãy hỏi Alpha Mini để gọi tài liệu xuất hiện trên màn hình...</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+        </aside>
+
+        <main class="main-area">
+            <!-- Idle State -->
+            <div class="view-state idle-view" id="idle-state">
+                <div class="visualizer-box">
+                    <div class="pulse-circle"></div>
+                    <div class="pulse-circle"></div>
+                    <div class="pulse-circle"></div>
+                    <div class="robot-avatar">
+                        <i class="ph-duotone ph-microphone-stage"></i>
+                    </div>
+                </div>
+                <h2 class="idle-title">Alpha Mini Đang Sẵn Sàng</h2>
+                <p class="idle-subtitle">Hãy đặt câu hỏi hoặc yêu cầu mình tìm kiếm tài liệu giúp bạn nhé!</p>
+                
+                <div class="suggestion-chips" style="margin-top: 40px; display: flex; gap: 12px;">
+                    <span class="doc-badge" style="padding: 12px 24px; font-size: 14px;">"Tìm báo cáo doanh thu"</span>
+                    <span class="doc-badge" style="padding: 12px 24px; font-size: 14px;">"Quy trình bảo mật là gì?"</span>
+                </div>
+            </div>
+
+            <!-- Document State -->
+            <div class="view-state doc-view hidden" id="document-viewer">
+                <div class="doc-frame">
+                    <img src="" id="pdf-page-img" alt="Tài liệu" class="hidden">
+                    <div class="text-content hidden" id="pdf-text-content"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
