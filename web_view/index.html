@@ -23,24 +23,35 @@
                 </div>
             </div>
 
-            <div class="status-card">
-                <div class="status-icon pulse-blue">
-                    <i class="ph-fill ph-cell-signal-full"></i>
+            <div class="robot-manager-card" style="background: white; border-radius: var(--radius-md); padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-soft);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div id="robot-status-dot" style="width: 12px; height: 12px; border-radius: 50%; background: #EF4444; box-shadow: 0 0 8px rgba(239,68,68,0.5);"></div>
+                        <span id="robot-status-text" style="font-size: 14px; font-weight: 700; color: var(--text-main);">Chưa kết nối Robot</span>
+                    </div>
+                    <span class="status-time" id="clock" style="font-size: 14px; color: var(--text-muted); font-weight: 600;">14:00</span>
                 </div>
-                <div class="status-info">
-                    <span class="status-label">Kết Nối Ổn Định</span>
-                    <span class="status-time" id="clock">14:00</span>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="robot-sn-input" placeholder="Nhập mã SN (VD: EAA...)" style="flex: 1; width: 100%; padding: 8px 12px; border: 1px solid #E2E8F0; border-radius: 8px; outline: none; font-size: 13px; font-weight: 600;">
+                    <button id="btn-connect-robot" onclick="toggleRobotConnection()" class="upload-btn" style="background: var(--primary-blue); color: white;">
+                        <i class="ph-bold ph-plugs"></i> Kết Nối
+                    </button>
                 </div>
             </div>
 
             <div class="sidebar-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h3 class="section-title" style="margin-bottom: 0;">
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+                    <h3 class="section-title" style="margin-bottom: 0; white-space: nowrap;">
                         <i class="ph-bold ph-file-pdf"></i> TÀI LIỆU ĐANG MỞ
                     </h3>
-                    <button class="upload-btn" onclick="document.getElementById('pdf-upload').click()">
-                        <i class="ph-bold ph-upload-simple"></i> Tải Lên
-                    </button>
+                    <div style="display: flex; gap: 8px; width: 100%;">
+                        <button class="upload-btn" onclick="document.getElementById('pdf-upload').click()" style="flex: 1; justify-content: center; white-space: nowrap;">
+                            <i class="ph-bold ph-upload-simple"></i> Tải Lên
+                        </button>
+                        <button class="upload-btn" onclick="syncAIData()" style="flex: 1; justify-content: center; background: var(--primary-blue); color: white; white-space: nowrap;" title="Cập nhật AI">
+                            <i class="ph-bold ph-arrows-clockwise"></i> Đồng Bộ
+                        </button>
+                    </div>
                     <input type="file" id="pdf-upload" accept=".pdf" style="display: none;" onchange="handleFileUpload(event)">
                 </div>
                 <div id="upload-status" style="display: none; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: var(--primary-blue); background: var(--primary-glow); padding: 8px 12px; border-radius: 8px;"></div>

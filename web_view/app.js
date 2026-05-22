@@ -64,7 +64,6 @@ function connectWebSocket() {
 
     ws.onopen = function() {
         console.log("🟢 Đã kết nối với Tổng Đài Điều Khiển (FastAPI)");
-        document.querySelector(".status-text").textContent = "Tivi Sẵn Sàng Nhận Lệnh";
     };
 
     ws.onmessage = function(event) {
@@ -72,8 +71,9 @@ function connectWebSocket() {
         try {
             const data = JSON.parse(event.data);
             if (data.type === "document") {
-                // Tự động lật sách!
-                showDocumentMode(data.file_name, data.page, data.image_url, data.insights);
+                const host = window.location.hostname || "localhost";
+                const fullImageUrl = data.image_url ? `http://${host}:8888${data.image_url}` : "";
+                showDocumentMode(data.file_name, data.page, fullImageUrl, data.insights);
             } else if (data.type === "idle") {
                 showIdleMode();
             }
@@ -84,9 +84,6 @@ function connectWebSocket() {
 
     ws.onclose = function() {
         console.warn("🔴 Đứt kết nối với Máy Chủ Của Robot. Cố gắn nối lại sau 3 giây...");
-        document.querySelector(".status-text").textContent = "Mất kết nối máy chủ!";
-        document.querySelector(".status-text").style.color = "red";
-        document.querySelector(".dot.online").style.backgroundColor = "red";
         setTimeout(connectWebSocket, 3000);
     };
 }
@@ -140,4 +137,103 @@ window.handleFileUpload = async function(event) {
     setTimeout(() => {
         statusDiv.style.display = 'none';
     }, 5000);
+};
+
+// ==========================================
+// ĐỒNG BỘ LẠI DỮ LIỆU AI
+// ==========================================
+window.syncAIData = async function() {
+    const statusDiv = document.getElementById('upload-status');
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Đang tẩy não và học lại tài liệu...';
+    statusDiv.style.color = "var(--primary-blue)";
+    statusDiv.style.backgroundColor = "var(--primary-glow)";
+    
+    try {
+        const host = window.location.hostname || "localhost";
+        const response = await fetch(`http://${host}:8888/api/sync`, { method: "POST" });
+        const result = await response.json();
+        
+        if (response.ok && !result.error) {
+            statusDiv.innerHTML = `<i class="ph-bold ph-check-circle"></i> ${result.message}`;
+            statusDiv.style.color = "#10B981";
+            statusDiv.style.backgroundColor = "#D1FAE5";
+        } else {
+            statusDiv.innerHTML = `<i class="ph-bold ph-warning"></i> Lỗi: ${result.error}`;
+            statusDiv.style.color = "#EF4444";
+            statusDiv.style.backgroundColor = "#FEE2E2";
+        }
+    } catch (e) {
+        statusDiv.innerHTML = `<i class="ph-bold ph-warning"></i> Lỗi mất kết nối tới Server!`;
+        statusDiv.style.color = "#EF4444";
+        statusDiv.style.backgroundColor = "#FEE2E2";
+    }
+    
+    setTimeout(() => {
+        statusDiv.style.display = 'none';
+    }, 5000);
+};
+
+// ==========================================
+// KẾT NỐI ROBOT TỪ WEB
+// ==========================================
+let isRobotConnected = false;
+
+window.toggleRobotConnection = async function() {
+    const inputField = document.getElementById('robot-sn-input');
+    const btnConnect = document.getElementById('btn-connect-robot');
+    const statusText = document.getElementById('robot-status-text');
+    const statusDot = document.getElementById('robot-status-dot');
+    const host = window.location.hostname || "localhost";
+
+    if (!isRobotConnected) {
+        const sn = inputField.value.trim();
+        if (!sn) {
+            alert("Vui lòng nhập mã SN của Robot (VD: EAA...)");
+            return;
+        }
+
+        btnConnect.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Đang...';
+        try {
+            const response = await fetch(`http://${host}:8888/api/robot/connect`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sn: sn })
+            });
+            const result = await response.json();
+
+            if (response.ok && !result.error) {
+                isRobotConnected = true;
+                inputField.disabled = true;
+                inputField.style.opacity = "0.6";
+                btnConnect.style.background = "#EF4444"; // Đỏ
+                btnConnect.innerHTML = '<i class="ph-bold ph-power"></i> Ngắt';
+                statusDot.style.background = "#10B981"; // Xanh lá
+                statusDot.style.boxShadow = "0 0 8px rgba(16,185,129,0.5)";
+                statusText.textContent = `Đang điều khiển: ${sn}`;
+            } else {
+                alert("Lỗi: " + (result.error || "Không thể kết nối"));
+                btnConnect.innerHTML = '<i class="ph-bold ph-plugs"></i> Kết Nối';
+            }
+        } catch (e) {
+            alert("Không thể kết nối đến Máy chủ (Server đang tắt?)");
+            btnConnect.innerHTML = '<i class="ph-bold ph-plugs"></i> Kết Nối';
+        }
+    } else {
+        // Ngắt kết nối
+        btnConnect.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Đang...';
+        try {
+            await fetch(`http://${host}:8888/api/robot/disconnect`, { method: "POST" });
+        } catch (e) { console.error(e); }
+
+        isRobotConnected = false;
+        inputField.disabled = false;
+        inputField.style.opacity = "1";
+        inputField.value = "";
+        btnConnect.style.background = "var(--primary-blue)";
+        btnConnect.innerHTML = '<i class="ph-bold ph-plugs"></i> Kết Nối';
+        statusDot.style.background = "#EF4444"; // Đỏ
+        statusDot.style.boxShadow = "0 0 8px rgba(239,68,68,0.5)";
+        statusText.textContent = "Chưa kết nối Robot";
+    }
 };

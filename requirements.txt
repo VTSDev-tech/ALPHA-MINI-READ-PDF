@@ -1,11 +1,15 @@
 fastapi
 uvicorn
-websockets
+python-multipart
+websockets==10.4
+alphamini
 SpeechRecognition
 PyAudio
 requests
 edge-tts
 pymupdf
+pypdf
+langchain-core<0.3.0
 langchain-chroma
 langchain-community
 langchain-google-genai

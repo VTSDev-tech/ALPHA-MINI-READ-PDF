@@ -24,8 +24,18 @@ from mini.apis import AudioStorageType
 # ==========================================
 # CẤU HÌNH HỆ THỐNG
 # ==========================================
-SERIAL_NUMBER = "EAA007UBT10000339"
-TTS_CACHE_DIR = r"D:\alphamini\tts_cache"
+import json
+
+SERIAL_NUMBER = "" # Mặc định trống, sẽ lấy từ file cấu hình của Web
+config_path = os.path.join(os.path.dirname(__file__), "robot_config.json")
+try:
+    with open(config_path, "r") as f:
+        config = json.load(f)
+        SERIAL_NUMBER = config.get("SERIAL_NUMBER", "")
+except:
+    pass
+
+TTS_CACHE_DIR = os.path.join(os.path.dirname(__file__), "tts_cache")
 LANGUAGE      = "vi-VN"
 
 logging.basicConfig(level=logging.WARNING)
@@ -125,15 +135,41 @@ async def handle_special_commands(text: str) -> bool:
         await robot_speak("Mình là Robot thông minh Alpha Mini.")
         return True
     if any(k in cmd for k in ["nhảy", "múa", "dance"]):
-        await robot_speak("Oke, mình nhảy đây!")
         await StartBehavior(name="dance_0004en").execute()
         await asyncio.sleep(8); await StopBehavior().execute()
         return True
     if any(k in cmd for k in ["hát", "sing"]):
-        await robot_speak("Để mình hát một đoạn nhé!")
         await StartBehavior(name="dance_0001en").execute()
         await asyncio.sleep(10); await StopBehavior().execute()
         return True
+        
+    # --- CÁC LỆNH MỚI THÊM ---
+    if any(k in cmd for k in ["giỏi quá", "thông minh", "đẹp trai", "tuyệt vời", "khen"]):
+        await PlayExpression(express_name="emo_004").execute() # Cười tít mắt / Trái tim
+        await robot_speak("Hihi, cảm ơn bạn nhiều nha! Mình vui lắm đó.")
+        return True
+        
+    if any(k in cmd for k in ["tập võ", "múa võ", "kungfu", "đánh võ"]):
+        await PlayExpression(express_name="emo_014").execute() # Mắt nghiêm túc/chiến đấu
+        await robot_speak("Chuẩn bị xem mình đi đường quyền đây! Ya da!")
+        await PlayAction(action_name="action_018").execute() # Mã tập võ thường dùng của Alpha Mini
+        return True
+
+    if any(k in cmd for k in ["hít đất", "thể dục", "tập gym"]):
+        await robot_speak("Mình là robot yêu thể thao đấy nhé. Nhìn mình hít đất đây!")
+        await PlayAction(action_name="action_015").execute() # Mã hít đất thường dùng
+        return True
+
+    if any(k in cmd for k in ["chuyện cười", "kể chuyện", "buồn cười"]):
+        await robot_speak("Bạn nghe nhé. Tại sao viên thuốc lại không bao giờ cười?... Vì nó bị... trầm cảm! Haha, đùa thôi.")
+        await PlayExpression(express_name="emo_016").execute()
+        return True
+        
+    if any(k in cmd for k in ["ngủ đi", "buồn ngủ", "mệt"]):
+        await PlayExpression(express_name="emo_044").execute() # Mắt ngáp/nhắm
+        await robot_speak("Oáp... Mình cũng buồn ngủ rồi, nhưng mình phải thức để trực hệ thống đây.")
+        return True
+
     return False
 
 # ==========================================
@@ -168,7 +204,7 @@ async def main():
             if await handle_special_commands(question): continue
 
             try:
-                r = requests.post("http://127.0.0.1:8888/api/ask", json={"question": question}, timeout=5)
+                r = await asyncio.to_thread(requests.post, "http://127.0.0.1:8888/api/ask", json={"question": question}, timeout=5)
                 data = r.json()
                 if data.get("found_doc"):
                     # CỰC KỲ QUAN TRỌNG: Gọi hành động song song để không chặn giọng nói

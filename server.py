@@ -1,6 +1,8 @@
 import os
 import sys
 import asyncio
+import json
+import subprocess
 from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,8 +21,12 @@ sys.stdout.reconfigure(encoding="utf-8")
 # ==========================================
 load_dotenv()
 CHROMA_PATH = "chroma_db"
-PDF_SRC_DIR = Path(r"D:\alphamini\Tai_lieu_PDF")
-PAGE_IMG_DIR = Path(r"D:\alphamini\web_view\pdf_pages")
+
+# Lấy đường dẫn thư mục gốc của project (nơi chứa server.py)
+BASE_DIR = Path(__file__).resolve().parent
+
+PDF_SRC_DIR = BASE_DIR / "TAI_LIEU_PDF" # Cập nhật theo đúng tên thư mục bên Bangiao
+PAGE_IMG_DIR = BASE_DIR / "web_view" / "pdf_pages"
 PAGE_IMG_DIR.mkdir(parents=True, exist_ok=True)
 
 embeddings_model = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
@@ -30,15 +36,19 @@ print("✅ Đã kết nối ChromaDB Offline. Sẵn sàng!")
 def render_pdf_page(source_filename: str, page_num: int) -> str:
     try:
         pdf_path = PDF_SRC_DIR / source_filename
-        img_name = f"{source_filename}_page{page_num}.png"
+        img_name = f"{source_filename}_page{page_num}.jpg"
         img_path = PAGE_IMG_DIR / img_name
         if not img_path.exists():
             doc = fitz.open(str(pdf_path))
             page = doc[page_num - 1]
-            page.get_pixmap(matrix=fitz.Matrix(2, 2)).save(str(img_path))
+            # Tối ưu: Giảm tỷ lệ matrix xuống 1.5 và dùng JPEG 80% để load Web siêu tốc (giảm 90% dung lượng)
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))
+            pix.save(str(img_path), "jpeg", jpg_quality=80)
             doc.close()
         return f"/pdf_pages/{img_name}"
-    except: return None
+    except Exception as e: 
+        print(f"❌ Lỗi tạo ảnh PDF: {e}")
+        return None
 
 # ==========================================
 # FASTAPI
@@ -77,7 +87,7 @@ async def ask_rag(req: AskRequest):
     print(f"🔍 Tìm kiếm: {req.question}")
     try:
         # Tối ưu tìm kiếm: Thêm trọng số cho từ khóa quan trọng
-        tu_khoa_uu_tien = ["giá", "chi phí", "vnđ", "bảng giá", "bao nhiêu", "kpi", "cam kết"]
+        tu_khoa_uu_tien = ["giá", "chi phí", "vnđ", "bảng giá", "bao nhiêu", "kpi", "cam kết", "kiến trúc", "sơ đồ", "ưu điểm", "khác biệt"]
         cau_hoi_lower = req.question.lower()
         
         # Gọi Chroma tìm 5 kết quả tốt nhất
@@ -106,7 +116,7 @@ async def ask_rag(req: AskRequest):
             
             payload = {
                 "type": "document", "file_name": source, "page": f"Trang {page}",
-                "image_url": f"http://localhost:8888{img_url_rel}" if img_url_rel else "",
+                "image_url": img_url_rel if img_url_rel else "",
                 "insights": [l.strip() for l in text.split("\n") if l.strip()][:3]
             }
             global last_state; last_state = payload
@@ -147,6 +157,71 @@ async def upload_pdf(file: UploadFile = File(...)):
         return {"message": f"Tải lên {file.filename} thành công!"}
     except Exception as e:
         print(f"❌ Lỗi Upload: {e}")
+        return {"error": str(e)}
+
+@app.post("/api/sync")
+async def sync_ai_data():
+    global db
+    print("🔄 Bắt đầu dọn dẹp và đồng bộ lại AI...")
+    try:
+        # Xóa dữ liệu bộ nhớ cũ
+        db.delete_collection()
+        print("Đã xóa bộ nhớ cũ.")
+        
+        # Khởi tạo lại kết nối mới
+        db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings_model)
+        
+        # Gọi hàm đọc và nạp lại toàn bộ file PDF hiện có
+        await asyncio.to_thread(process_pdfs, str(PDF_SRC_DIR))
+        return {"message": "Đã làm mới bộ nhớ AI thành công!"}
+    except Exception as e:
+        print(f"❌ Lỗi Sync: {e}")
+        return {"error": str(e)}
+
+# ==========================================
+# QUẢN LÝ KẾT NỐI ROBOT (SUBPROCESS)
+# ==========================================
+robot_process = None
+
+class ConnectRequest(BaseModel):
+    sn: str
+
+@app.post("/api/robot/connect")
+async def connect_robot(req: ConnectRequest):
+    global robot_process
+    
+    sn = req.sn.strip()
+    if not sn:
+        return {"error": "Mã SN không được để trống"}
+        
+    try:
+        # Nếu đang có robot chạy thì tắt đi
+        if robot_process is not None:
+            robot_process.terminate()
+            robot_process = None
+            
+        # Ghi mã SN vào file config để robotchat.py đọc
+        config_path = BASE_DIR / "robot_config.json"
+        with open(config_path, "w") as f:
+            json.dump({"SERIAL_NUMBER": sn}, f)
+            
+        # Kích hoạt robotchat.py chạy ngầm
+        script_path = BASE_DIR / "robotchat.py"
+        robot_process = subprocess.Popen(["python", str(script_path)])
+        
+        return {"message": f"Đã gửi lệnh kết nối tới Robot {sn}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/api/robot/disconnect")
+async def disconnect_robot():
+    global robot_process
+    try:
+        if robot_process is not None:
+            robot_process.terminate()
+            robot_process = None
+        return {"message": "Đã ngắt kết nối Robot"}
+    except Exception as e:
         return {"error": str(e)}
 
 if __name__ == "__main__":
